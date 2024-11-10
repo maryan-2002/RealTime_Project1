@@ -1,0 +1,7 @@
+{
+    "makefile.configureOnOpen": false,
+    "files.associations": {
+        "stdbool.h": "c",
+        "stat.h": "c"
+    }
+}

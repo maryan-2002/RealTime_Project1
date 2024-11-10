@@ -82,15 +82,16 @@ void referee_process(int max_score) {
         // Read stabilization time from the pipe
         read(pipes[team_index][0], &stabilization_time, sizeof(stabilization_time));
         printf("%s Player %d stabilized in %.2f seconds.\n", team_names[team_index], player_index + 1, stabilization_time);
-
-        read(pipes[team_index][0], &pulling_time, sizeof(pulling_time));
-        printf("%s Team pulling  in %.2f seconds.\n", team_names[team_index],  pulling_time);
          // Send SIGCONT to two other players in the team to assist
         for (int i = 1; i <= 2; i++) {
             int puller_index = (player_index + i) % PLAYERS_FOR_EACH_TEAM;
             kill(players_id[team_index][puller_index], SIGCONT);  // Signal teammates to assist
         }
+        read(pipes[team_index][0], &stabilization_time, sizeof(stabilization_time));
+        printf("%s Player %d stabilized in %.2f seconds.\n", team_names[team_index], player_index + 1, stabilization_time);
 
+        read(pipes[team_index][0], &stabilization_time, sizeof(stabilization_time));
+        printf("%s Player %d stabilized in %.2f seconds.\n", team_names[team_index], player_index + 1, stabilization_time);
 
         // Move to the next player in round-robin fashion
         team_index = (team_index + 1) % TEAMS_NUMBER;

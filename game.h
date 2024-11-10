@@ -8,14 +8,18 @@
 #define TEAMS_NUMBER 3
 #define PLAYERS_FOR_EACH_TEAM 3
 #define INITIAL_ENERGY 100
-
+#define NumberOfRound  40
 typedef struct {
     int team_index;
     int player_index;
     int massageType;
-    double time;
+    float time;
 } player_message;
-
+typedef struct {
+    int team_index;
+    float time;
+    int round;
+} referee_message;
 
 typedef struct {
     int team_index;
@@ -24,6 +28,8 @@ typedef struct {
     float y;
 } animation_message;
 
+
+extern max_score, game_duration;
 // Shared variables (extern declarations)
 extern pid_t players_id[TEAMS_NUMBER][PLAYERS_FOR_EACH_TEAM];
 extern pid_t ref[TEAMS_NUMBER];
@@ -32,13 +38,15 @@ extern int flag_jump_team[TEAMS_NUMBER];
 extern pid_t referee_pid;  // Variable to hold referee process ID
 extern const char *team_names[];
 extern int scores[TEAMS_NUMBER][PLAYERS_FOR_EACH_TEAM];  // Score array for players
-extern int player_energy[TEAMS_NUMBER][PLAYERS_FOR_EACH_TEAM];
-
+extern float player_energy[TEAMS_NUMBER][PLAYERS_FOR_EACH_TEAM];
+extern float timeSpendeachRound[NumberOfRound][TEAMS_NUMBER];
 // Pipes for communication between players and referee
 extern int pipes[TEAMS_NUMBER][2]; // Each player will write to a pipe that the referee reads
-extern int pipes_animation[TEAMS_NUMBER][2]; // Each player will write to a pipe that the referee reads
+extern int pipestoref[TEAMS_NUMBER][2]; // Each player will write to a pipe that the referee reads
+extern int pipesreftopare[2]; 
 extern int pipes_animationte[2]; // Each player will write to a pipe that the referee reads
 extern int pipeFd[2];
+extern float score[TEAMS_NUMBER];
 
 // Function prototypes
 void referee_process();
