@@ -1,13 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <signal.h>
 #include <GL/glut.h>
 #include "player.h"
-#include "referee.h"
+
 #include "game.h"
+#include "referee.h"
 #include "animation.h"
 #include "spinningsquare.h"  // Include spinningsquare.h to use spin_square function
 
@@ -25,20 +27,22 @@ int pipestoref[TEAMS_NUMBER][2];
 int pipes_animation[TEAMS_NUMBER][2];
 int pipes_animationte[2];
 int pipe_myanimation[2];
-int max_score, game_duration;
+//int max_score, game_duration;
+
+
 pid_t openGL_pid; // Global variable
 pid_t ref[TEAMS_NUMBER];
 
 
-void initGraphics(int argc, char **argv); // Add the function prototype
+void initGraphics(int argc, char *argv[]); // Add the function prototype
 
-void initGame(int argc, char **argv)
+void initGame(int argc, char *argv[], GameSettings *settings)
 {
     // Game setup
-    printf("Enter the maximum score to end the game: ");
-    scanf("%d", &max_score);
-    printf("Enter the maximum game duration in seconds: ");
-    scanf("%d", &game_duration);
+    // printf("Enter the maximum score to end the game: ");
+    // scanf("%d", &max_score);
+    // printf("Enter the maximum game duration in seconds: ");
+    // scanf("%d", &game_duration);
     if (pipe(pipes_animationte) == -1)
     {
         perror("pipe failed");
@@ -93,7 +97,7 @@ void initGame(int argc, char **argv)
     referee_pid = fork();
     if (referee_pid == 0)
     {
-        referee_process(max_score);
+        referee_process(&settings);
         exit(0);
     }
 
@@ -104,7 +108,7 @@ void initGame(int argc, char **argv)
         exit(0);
     }
 
-    sleep(game_duration);
+    sleep(&settings->game_duration);
     printf("Game over! Time's up!\n");
     hii();
     end_game();
@@ -116,9 +120,39 @@ void hii(){
     printf("hiiiiii");
 }
 
-int main(int argc, char **argv)
+void loadSettings(const char* filename, GameSettings *settings) {
+    FILE *file = fopen(filename, "r");
+    if (file == NULL) {
+        perror("Error opening file");
+        exit(1);
+    }
+
+    char line[256];
+    while (fgets(line, sizeof(line), file)) {
+        // Process each line as needed, e.g., parse key-value pairs
+        char key[50];
+        int value;
+        if (strcmp(key, "gameDuration") == 0) {
+                settings->game_duration = value;
+            } else if (strcmp(key, "gameScore") == 0) {
+                settings->max_score = value;
+            }
+    }
+    fclose(file);
+}
+
+int main(int argc, char *argv[])
 {
-    initGame(argc, argv); // Initialize and start the game
+    if (argc < 2){
+        printf("Usage: %s <settings_file>\n", argv[0]);
+        return 0;
+    }
+    GameSettings settings = {0};
+    loadSettings(argv[1], &settings);
+    printf("Game Settings:\n");
+    printf("Game Duration: %d\n", settings.game_duration);
+    printf("Game Score: %d\n", settings.max_score);
+    initGame(argc, argv, &settings); // Initialize and start the game
     return 0;
 }
 

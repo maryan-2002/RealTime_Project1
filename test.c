@@ -5,6 +5,7 @@
 #include <sys/wait.h>
 #include <signal.h>
 #include <stdbool.h>
+#include "game.h"
 
 #define TEAMS_NUMBER 3               
 #define PLAYERS_FOR_EACH_TEAM 3 
@@ -66,7 +67,8 @@ void player_process(int team_id, int player_id) {
 }
 
 // Referee process function
-void referee_process(int max_score) {
+void referee_process(GameSettings settings) {
+    int max_score=settings.max_score;
     int team_index = 0;
     int player_index = 0;
     double stabilization_time;
@@ -102,13 +104,13 @@ void referee_process(int max_score) {
 }
 
 int main() {
-    int max_score;
-    printf("Enter the maximum score to end the game: ");
-    scanf("%d", &max_score);
+    // int max_score;
+    // printf("Enter the maximum score to end the game: ");
+    // scanf("%d", &max_score);
 
-    int game_duration;
-    printf("Enter the maximum game duration in seconds: ");
-    scanf("%d", &game_duration);
+    // int game_duration;
+    // printf("Enter the maximum game duration in seconds: ");
+    // scanf("%d", &game_duration);
 
     // Create pipes for each team
     for (int team = 0; team < TEAMS_NUMBER; team++) {
@@ -140,12 +142,12 @@ int main() {
     // Create referee process
     referee_pid = fork();
     if (referee_pid == 0) {
-        referee_process(max_score);
+        referee_process(GameSettings.max_score);
         exit(0);
     }
 
     // Allow game to run for the specified duration
-    sleep(game_duration);
+    sleep(GameSettings.game_duration);
     printf("Game over! Time's up!\n");
 
     // Terminate all player processes

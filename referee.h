@@ -1,7 +1,7 @@
 #ifndef REFEREE_H
 #define REFEREE_H
 #include "game.h"
-void referee_process(int max_score);
+void referee_process(GameSettings *settings);
 void terminate_players_team(pid_t players_id[3][3], int team);
 void terminate_players(pid_t players_id[3][3]);
 void referee_process_judge(int team);

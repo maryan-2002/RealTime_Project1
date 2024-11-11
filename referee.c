@@ -11,8 +11,9 @@
 float timeSpendeachRound[NumberOfRound][TEAMS_NUMBER];
 float Score[TEAMS_NUMBER];
 int pipesreftopare[2];
-void referee_process(int max_score)
+void referee_process(GameSettings *settings)
 {
+    printf("Max Score: %d\n", settings->max_score);
     int team_index = 0;
     int player_index = 0;
     double stabilization_time;
@@ -55,7 +56,7 @@ void referee_process(int max_score)
             writeToFile(Score[msg_ref.team_index], msg_ref.team_index, msg_ref.time, msg_ref.round);
 
         }
-        if (Score[msg_ref.team_index] >= max_score)
+        if (Score[msg_ref.team_index] >=  settings->max_score)
         {
 
             bytesRead = read(pipesreftopare[0], &msg_ref, sizeof(msg_ref));

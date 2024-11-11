@@ -5,6 +5,8 @@
         "stat.h": "c",
         "player.h": "c",
         "referee.h": "c",
-        "game.h": "c"
-    }
+        "game.h": "c",
+        "spinningsquare.h": "c"
+    },
+    "C_Cpp.errorSquiggles": "disabled"
 }
