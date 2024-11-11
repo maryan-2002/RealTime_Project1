@@ -15,6 +15,7 @@ typedef struct {
     int massageType;
     float time;
 } player_message;
+
 typedef struct {
     int team_index;
     float time;
@@ -47,6 +48,9 @@ extern int pipesreftopare[2];
 extern int pipes_animationte[2]; // Each player will write to a pipe that the referee reads
 extern int pipeFd[2];
 extern float score[TEAMS_NUMBER];
+
+extern int pipe_myanimation[2];  // Declaration for the new pipe
+
 
 // Function prototypes
 void referee_process();

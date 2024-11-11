@@ -12,5 +12,6 @@ int findWinningTeam(float Score[TEAMS_NUMBER]);
 void tesstFunction();
 void writeStopToFile();
 void writeToAnimationFileTeam(int teamIndex, int team_index ,float time, int type) ;
-
+void writeToScoreFile(int teamIndex, int team_index, float score, float time);
+void writeToFile(float score, int teamIndex, float time, int round);
 #endif // REFEREE_H

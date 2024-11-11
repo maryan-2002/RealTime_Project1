@@ -1,278 +1,215 @@
-#ifdef __APPLE_CC__
-#include <GLUT/glut.h>
-#else
 #include <GL/glut.h>
-#endif
-#include <stdbool.h>
-#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/stat.h>
-#include <time.h>
-#include <math.h>
+#include <string.h>
+#include "player.h"
+#include "game.h"
+#include "referee.h"
 
-#define MAX_PLAYERS 9  // Max number of players
-#define NUM_COLUMNS 6  // Number of columns in the table
+// Declare the global variables
+#define INITIAL_ROWS 100  // Initial allocation size
+#define MAX_COLS 4
+float **tableDataFloat;  // For storing score and time
+int **tableDataInt;      // For storing team index and round
 
-// Define the structure to hold player data
-typedef struct {
-    int rank;
-    char* team;
-    char* name;
-    char* competitor_name;
-    int  score;
-    float time;
-} Player;
+int rowCount = 0;  // Track the number of rows already read from the file
+int prevRowCount = 0; // Store the previous row count
 
-// Declare the players array to hold data from the file
-Player players[MAX_PLAYERS];
-int numPlayers = 0; // Track the number of valid players loaded
-time_t last_modified_time = 0; // File modification timestamp
+// Global scroll offset variables
+float scrollOffset = 0.0f; // Vertical scroll offset
 
-// Comparison function to sort players based on time in ascending order
-int compareByTime(const void* a, const void* b) {
-    Player* playerA = (Player*)a;
-    Player* playerB = (Player*)b;
-    if (playerA->time < playerB->time) return -1;
-    if (playerA->time > playerB->time) return 1;
-    return 0;
+// Adjust row height (you can change the value based on how much space each row takes)
+float rowHeight = 0.1f;
+
+// Function to dynamically allocate memory for table arrays
+void allocateMemory(int rows) {
+    tableDataFloat = (float **)realloc(tableDataFloat, rows * sizeof(float *));
+    tableDataInt = (int **)realloc(tableDataInt, rows * sizeof(int *));
+    
+    for (int i = rowCount; i < rows; i++) {
+        tableDataFloat[i] = (float *)malloc(2 * sizeof(float));
+        tableDataInt[i] = (int *)malloc(2 * sizeof(int));
+    }
 }
 
-// Function to load data from file
-void loadDataFromFile(const char* filename) {
-    FILE* file = fopen(filename, "r");
+// Function to read the new data from the file and append it to tableData
+void readNewDataFromFile() {
+    FILE *file = fopen("playerScore.txt", "r");
+
     if (file == NULL) {
-        printf("Could not open file %s for reading\n", filename);
+        // Handle file error
+        printf("File could not be opened.\n");
         return;
     }
 
-    struct stat file_stat;
-    if (stat(filename, &file_stat) == 0) {
-        if (file_stat.st_mtime != last_modified_time) {
-            last_modified_time = file_stat.st_mtime;  // Update last modified time
-        } else {
-            fclose(file);
-            return;  // No changes, exit early
+    // Skip previously read rows
+    rewind(file);
+    for (int i = 0; i < prevRowCount; i++) {
+        fscanf(file, " %*f %*d %*f %*d");
+    }
+
+    // Ensure space for rows
+    allocateMemory(rowCount + INITIAL_ROWS);
+
+    // Read new data
+    while (fscanf(file, " %f %d %f %d", &tableDataFloat[rowCount][0], &tableDataInt[rowCount][0],
+                  &tableDataFloat[rowCount][1], &tableDataInt[rowCount][1]) != EOF) {
+
+        if (tableDataFloat[rowCount][0] == -1.0f || tableDataInt[rowCount][0] == -1 ||
+            tableDataFloat[rowCount][1] == -1.0f || tableDataInt[rowCount][1] == -1) {
+            break;
+        }
+
+        printf("New data read: %.2f %d %.2f %d\n", tableDataFloat[rowCount][0], tableDataInt[rowCount][0], 
+               tableDataFloat[rowCount][1], tableDataInt[rowCount][1]);
+        rowCount++;
+        
+        if (rowCount >= 1000) { // Maximum allowed rows
+            break;
         }
     }
 
-    numPlayers = 0; // Reset player count
-    for (int i = 0; i < MAX_PLAYERS; i++) {
-        players[i].team = (char*)malloc(50 * sizeof(char));
-        players[i].name = (char*)malloc(50 * sizeof(char));
-        players[i].competitor_name = (char*)malloc(50 * sizeof(char));
-
-        if (fscanf(file, "%d %49s %49s %49s %d %f\n", 
-            &players[numPlayers].rank, players[numPlayers].team, players[numPlayers].name, 
-            players[numPlayers].competitor_name, &players[numPlayers].score, &players[numPlayers].time) == 6) {
-            numPlayers++;
-        } else {
-            printf("Error reading line %d\n", i + 1);
-            free(players[i].team);
-            free(players[i].name);
-            free(players[i].competitor_name);
-        }
-    }
-
+    prevRowCount = rowCount;
     fclose(file);
+}
+
+// Function to render text on the screen
+void renderText(float x, float y, char *text) {
+    glRasterPos2f(x, y);
+    for (int i = 0; i < strlen(text); i++) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, text[i]);
+    }
+}
+
+// Function to compare scores for sorting
+int compareScores(const void *a, const void *b) {
+    float scoreA = ((float **)a)[0][0];
+    float scoreB = ((float **)b)[0][0];
+    return (scoreB - scoreA); // Sort in descending order
+}
+
+// Function to render a single row with color based on score
+void renderRow(float xPos, float yPos, float score, int teamIndex, float time, int round, float color[3]) {
+    glColor3f(color[0], color[1], color[2]);
+
+    char buffer[100];
     
-    // Sort the players by time
-    qsort(players, numPlayers, sizeof(Player), compareByTime);
-    
-    // Update ranks based on sorted order
-    for (int i = 0; i < numPlayers; i++) {
-        players[i].rank = i + 1;  // Assign ranks based on sorted order
-    }
+    // Score
+    sprintf(buffer, "%.2f", score);
+    renderText(xPos, yPos, buffer);
+
+    // Team Index
+    sprintf(buffer, "%d", teamIndex);
+    renderText(xPos + 0.3f, yPos, buffer);
+
+    // Time
+    sprintf(buffer, "%.2f", time);
+    renderText(xPos + 0.6f, yPos, buffer);
+
+    // Round
+    sprintf(buffer, "%d", round);
+    renderText(xPos + 0.9f, yPos, buffer);
 }
 
-// Function to free dynamically allocated memory
-void freePlayerData() {
-    for (int i = 0; i < numPlayers; i++) {
-        free(players[i].team);
-        free(players[i].name);
-        free(players[i].competitor_name);
-    }
-}
-
-// Function to draw a rounded rectangle
-void drawRoundedRect(float x, float y, float width, float height, float radius) {
-    glBegin(GL_POLYGON);
-    for (int i = 0; i <= 360; i++) {
-        float angle = i * 3.14159265358979323846 / 180.0;
-        glVertex2f(x + width - radius + cos(angle) * radius, y + height - radius + sin(angle) * radius);
-        glVertex2f(x + radius + cos(angle) * radius, y + height - radius + sin(angle) * radius);
-        glVertex2f(x + radius + cos(angle) * radius, y + radius + sin(angle) * radius);
-        glVertex2f(x + width - radius + cos(angle) * radius, y + radius + sin(angle) * radius);
-    }
-    glEnd();
-}
-
-// Function to calculate the width of a string for proper spacing
-int getTextWidth(const char* text) {
-    int width = 0;
-    while (*text) {
-        width += glutBitmapWidth(GLUT_BITMAP_HELVETICA_12, *text);
-        text++;
-    }
-    return width;
-}
-
-// Draw the table with player data
-void drawTable() {
-    float startX = 0.1f;  // Move the table slightly leftward
-    float startY = 0.9f;
-    float rowHeight = 0.08f;  // Row height
-    float cellWidth = 0.14f;  // Reduced column width for a smaller table
-    float radius = 0.02f;
-    float rowSpacing = 0.04f;  // Row spacing
-
-    // Title
-    glColor3f(0.0f, 0.0f, 0.0f);  // Black text
-    glRasterPos2f(startX + cellWidth * 2, startY);
-    const char *title = "Player Rankings";
-    for (const char *c = title; *c != '\0'; c++) {
-        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *c);
-    }
-
-    startY -= rowHeight;  // Move down after title
-
-    // Draw header
-    glColor3f(0.2f, 0.3f, 0.5f);  // Blue header background
-    drawRoundedRect(startX - 0.05f, startY - 0.05f, cellWidth * NUM_COLUMNS + 0.1f, rowHeight + 0.1f, radius);
-
-    // Header text
-    glColor3f(1.0f, 1.0f, 1.0f);  // White text
-    const char *header[] = {"Rank", "Team", "Name", "Competitor", "Score", "Time"};
-    for (int i = 0; i < NUM_COLUMNS; ++i) {
-        glRasterPos2f(startX, startY + rowHeight / 2);
-        for (const char *c = header[i]; *c != '\0'; c++) {
-            glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *c);
-        }
-        startX += cellWidth;
-    }
-
-    // Draw player data rows
-    for (int i = 0; i < numPlayers; i++) {
-        startX = 0.1f;  // Reset the start position
-        startY -= (rowHeight + rowSpacing);  // Move down by row height + spacing
-
-        // Draw row background
-        if (i % 2 == 0) glColor3f(0.9f, 0.9f, 0.9f);  // Light gray for even rows
-        else glColor3f(1.0f, 1.0f, 1.0f);  // White for odd rows
-        drawRoundedRect(startX - 0.05f, startY - 0.05f, cellWidth * NUM_COLUMNS + 0.1f, rowHeight + 0.1f, radius);
-
-        // Draw player data
-        glColor3f(0.0f, 0.0f, 0.0f);  // Black text
-        char buffer[50];
-
-        // Rank
-        snprintf(buffer, sizeof(buffer), "%d", players[i].rank);
-        glRasterPos2f(startX, startY + rowHeight / 2);
-        for (const char *c = buffer; *c != '\0'; c++) {
-            glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *c);
-        }
-
-        startX += cellWidth;
-
-        // Team
-        glRasterPos2f(startX, startY + rowHeight / 2);
-        for (const char *c = players[i].team; *c != '\0'; c++) {
-            glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *c);
-        }
-
-        startX += cellWidth;
-
-        // Name
-        glRasterPos2f(startX, startY + rowHeight / 2);
-        for (const char *c = players[i].name; *c != '\0'; c++) {
-            glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *c);
-        }
-
-        startX += cellWidth;
-
-        // Competitor Name
-        glRasterPos2f(startX, startY + rowHeight / 2);
-        for (const char *c = players[i].competitor_name; *c != '\0'; c++) {
-            glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *c);
-        }
-
-        startX += cellWidth;
-
-        // Score
-        snprintf(buffer, sizeof(buffer), "%d", players[i].score);
-        glRasterPos2f(startX, startY + rowHeight / 2);
-        for (const char *c = buffer; *c != '\0'; c++) {
-            glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *c);
-        }
-
-        startX += cellWidth;
-
-        // Time
-        snprintf(buffer, sizeof(buffer), "%.2f", players[i].time);
-        glRasterPos2f(startX, startY + rowHeight / 2);
-        for (const char *c = buffer; *c != '\0'; c++) {
-            glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *c);
-        }
-    }
-}
-
-// Timer function to check for file changes and reload data
-void timer(int value) {
-    loadDataFromFile("players.txt");
-    glutPostRedisplay();  // Redraw the window
-    glutTimerFunc(10000, timer, 0);  // Check again after 10 seconds
-}
-
-// Function to draw a circle
-void drawCircle(float x, float y, float radius) {
-    glBegin(GL_POLYGON);
-    for (int i = 0; i <= 360; i++) {
-        float angle = i * 3.14159265358979323846 / 180.0;
-        glVertex2f(x + cos(angle) * radius, y + sin(angle) * radius);
-    }
-    glEnd();
-}
-
-// Modify the display function to draw the table and the circle, ensuring the entire table is visible
-void display() {
+// Function to display the table in OpenGL window
+void displayTable() {
     glClear(GL_COLOR_BUFFER_BIT);
-    glLoadIdentity();
 
-    // Draw the circle on the left side of the screen
-    glColor3f(1.0f, 0.0f, 0.0f);  // Red circle
-    drawCircle(-0.7f, 0.0f, 0.2f);  // Position the circle on the left
+    // Set up text rendering
+    glColor3f(0.0, 0.0, 0.0);  // Black text on white background
+    float xPos = -0.8f; // Starting x position for the table
+    float yPos = 0.8f + scrollOffset;  // Adjust yPos based on the scroll offset
 
-    // Draw the table on the right side of the screen
-    drawTable();  // Draw the table with updated data
+    // Render table headers
+    renderText(xPos, yPos, "Score");
+    renderText(xPos + 0.3f, yPos, "Team Index");
+    renderText(xPos + 0.6f, yPos, "Time");
+    renderText(xPos + 0.9f, yPos, "Round");
 
-    glutSwapBuffers();  // Swap buffers for double buffering
+    yPos -= 0.1f;  // Move down for the data rows
+
+    // Sort and render rows round-by-round
+    int currentRound = -1; // Track current round to detect changes
+    int startRowIndex = 0;
+
+    for (int i = 0; i < rowCount; i++) {
+        if (tableDataInt[i][1] != currentRound) {
+            // We have entered a new round; sort previous round’s data
+            if (i > startRowIndex) {
+                qsort(&tableDataFloat[startRowIndex], i - startRowIndex, sizeof(float*), compareScores);
+            }
+            currentRound = tableDataInt[i][1];
+            startRowIndex = i;
+        }
+
+        // Render row with color
+        float color[3];
+        if (i - startRowIndex == 0) {
+            color[0] = 0.0f; color[1] = 1.0f; color[2] = 0.0f;  // Green for highest score
+        } else if (i - startRowIndex == 1) {
+            color[0] = 1.0f; color[1] = 1.0f; color[2] = 0.0f;  // Yellow for second highest
+        } else {
+            color[0] = 1.0f; color[1] = 0.0f; color[2] = 0.0f;  // Red for others
+        }
+
+        renderRow(xPos, yPos, tableDataFloat[i][0], tableDataInt[i][0], tableDataFloat[i][1], tableDataInt[i][1], color);
+        yPos -= 0.1f; // Move down for next row
+    }
+
+    glutSwapBuffers();
 }
 
-int main(int argc, char** argv) {
+// Function to handle window resizing
+void reshape(int w, int h) {
+    glViewport(0, 0, w, h);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glOrtho(-1.0, 1.0, -1.0, 1.0, -1.0, 1.0); // Set orthographic projection
+    glMatrixMode(GL_MODELVIEW);
+}
+
+// Function to periodically read the new data and update the window
+void update(int value) {
+    readNewDataFromFile();  // Read only new data
+    glutPostRedisplay();
+    glutTimerFunc(1000, update, 0); // Update every 1000 ms
+}
+
+// Function to handle keyboard input for scrolling
+void keyboard(unsigned char key, int x, int y) {
+    // Maximum scroll offset based on rows
+    float maxScrollOffset = (rowCount * rowHeight) - 1.0f;
+
+    if (key == 'w' || key == 'W') {  // Scroll up (W key)
+        scrollOffset += 0.1f;
+        if (scrollOffset > 0.8f) {  // Limit scrolling upwards (keep some margin from top)
+            scrollOffset = 0.8f;
+        }
+    }
+    if (key == 's' || key == 'S') {  // Scroll down (S key)
+        scrollOffset -= 0.1f;
+        if (scrollOffset < -maxScrollOffset) {  // Limit scrolling down (keep the table visible)
+            scrollOffset = -maxScrollOffset;
+        }
+    }
+
+    glutPostRedisplay();
+}
+
+// The function that initializes the graphics
+void initGraphics(int argc, char **argv) {
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
+    glutInitWindowSize(800, 600);
+    glutCreateWindow("Dynamic Table Display");
 
-    // Increase the window size (larger screen)
-    glutInitWindowSize(1800, 800);  // Increased window size from 800x600 to 1200x800
-    glutCreateWindow("Player Rankings");
+    glClearColor(1.0, 1.0, 1.0, 1.0);  // White background
 
-    // Adjust the orthographic projection to fit the larger window
-    glOrtho(-2.0f, 2.0f, -1.5f, 1.5f, -1.0f, 1.0f);  // Further extend the left-right and up-down limits
+    glutDisplayFunc(displayTable);
+    glutReshapeFunc(reshape);
+    glutKeyboardFunc(keyboard);
 
-    // Load the initial data
-    loadDataFromFile("players.txt");
+    glutTimerFunc(1000, update, 0); // Call update every second to read new data
 
-    // Register the display function
-    glutDisplayFunc(display);
-
-    // Start the timer to periodically check for file changes
-    glutTimerFunc(10000, timer, 0);  // Check every 10 seconds
-
-    // Enter the GLUT main loop
     glutMainLoop();
-
-    // Clean up memory before exiting
-    freePlayerData();
-    
-    return 0;
 }

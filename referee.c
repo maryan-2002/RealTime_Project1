@@ -2,9 +2,11 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <unistd.h>
+#include <time.h>  // Add this header to fix implicit declaration of 'time'
 #include "referee.h"
 #include "player.h"
 #include "game.h"
+
 
 float timeSpendeachRound[NumberOfRound][TEAMS_NUMBER];
 float Score[TEAMS_NUMBER];
@@ -90,6 +92,7 @@ void referee_process_judge(int team)
         data = 1;
         ssize_t bytesWritten = write(pipestoref[team][1], &data, sizeof(data));
         ssize_t bytesRead = read(pipes[team][0], &msg, sizeof(msg));
+        
         writeToAnimationFileTeam(msg.team_index,msg.player_index,msg.time,msg.massageType);
         stabilize = msg.time;
         sleep(msg.time);
@@ -113,7 +116,10 @@ void referee_process_judge(int team)
         writeToAnimationFileTeam(msg.team_index,msg.player_index,msg.time,msg.massageType);
         pull1 = msg.time;
         bytesRead = read(pipes[team][0], &msg, sizeof(msg));
+
+        
         writeToAnimationFileTeam(msg.team_index,msg.player_index,msg.time,msg.massageType);
+
         pull2 = msg.time;
         finalpull = (pull1 + pull2) / 2;
         // printf(" the full time is  = %f",finalpull);
@@ -262,7 +268,7 @@ void writeStopToFile() {
     }
 
     // Write "stop" to the file
-    fprintf(file, "stop\n");
+    fprintf(file, "-1\n");
 
     fclose(file);  // Close the file after writing
 }
@@ -280,6 +286,24 @@ void writeToAnimationFileTeam(int teamIndex, int team_index ,float time, int typ
 
     fclose(file);  // Close the file after writing
 }
+void writeToScoreFile(int teamIndex, int team_index, float score, float time) {
+    // Open the file in append mode
+    FILE *file = fopen("teamScore.txt", "a");
+
+    if (file == NULL) {
+        perror("Error opening file");
+        return;
+    }
+
+    // Write the data to the file
+    fprintf(file, "TeamIndex: %d, Team: %d, Score: %.2f, Time: %.2f\n", teamIndex, team_index, score, time);
+
+    fclose(file);  // Close the file after writing
+}
+
+
+
+
 
 
 void writeToAnimationFileTeamB(int teamIndex, int team_index ,float time, int type) {

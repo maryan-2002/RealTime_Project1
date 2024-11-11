@@ -2,8 +2,12 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <unistd.h>
+#include <time.h>  // Add this header to fix implicit declaration of 'time'
+
 #include "player.h"
 #include "game.h"
+
+
 
 void handle_sigstop(int signum) {}
 void handle_sigcont(int signum) {}
@@ -16,6 +20,7 @@ void stabilize(int team_id, int player_id) {
     player_message msg;
     msg.team_index = team_id;
     msg.player_index = player_id;
+    
     msg.time = stabilization_time;
     msg.massageType = 0;  // 0 means jump
 
@@ -25,8 +30,6 @@ void stabilize(int team_id, int player_id) {
     ssize_t bytesWritten = write(pipes[team_id][1], &msg, sizeof(msg));
    // ssize_t bytesWritten2 = write(pipeFd[1], &msg, sizeof(msg));
 }
-
-
 
 // Function to pull up another player
 void pull_up(int team_id, int player_id) {

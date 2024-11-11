@@ -5,8 +5,8 @@ CC = gcc
 CFLAGS = -Wall -Wextra -O2
 
 # Define the source files and the target executable
-SRC = main.c player.c referee.c animation.c  
-OBJ = main.o player.o referee.o animation.o  
+SRC = main.c player.c referee.c animation.c  spinningsquare.c
+OBJ = main.o player.o referee.o animation.o  spinningsquare.o
 TARGET = game
 
 # Default target to compile the program
@@ -28,6 +28,10 @@ referee.o: referee.c
 
 animation.o: animation.c  # Added rule for animation.o
 	$(CC) $(CFLAGS) -c animation.c
+
+spinningsquare.o: spinningsquare.c  # Added rule for animation.o
+	$(CC) $(CFLAGS) -c spinningsquare.c
+
 
 # Run the program
 run: $(TARGET)

@@ -9,6 +9,10 @@
 #include "referee.h"
 #include "game.h"
 #include "animation.h"
+#include "spinningsquare.h"  // Include spinningsquare.h to use spin_square function
+
+
+pid_t openGL_pid; // Global variable
 
 pid_t players_id[TEAMS_NUMBER][PLAYERS_FOR_EACH_TEAM];
 int flag_jump_team[TEAMS_NUMBER];
@@ -20,11 +24,13 @@ int pipes[TEAMS_NUMBER][2];
 int pipestoref[TEAMS_NUMBER][2];
 int pipes_animation[TEAMS_NUMBER][2];
 int pipes_animationte[2];
+int pipe_myanimation[2];
 int max_score, game_duration;
 pid_t openGL_pid; // Global variable
 pid_t ref[TEAMS_NUMBER];
 
 
+void initGraphics(int argc, char **argv); // Add the function prototype
 
 void initGame(int argc, char **argv)
 {
@@ -38,6 +44,12 @@ void initGame(int argc, char **argv)
         perror("pipe failed");
         exit(1);
     }
+    
+        // Create the Myanimation pipe
+    if (pipe(pipe_myanimation) == -1) {
+            perror("Failed to create pipe_myanimation");
+            exit(1);
+        }
     // Create pipes for each team
     for (int team = 0; team < TEAMS_NUMBER; team++)
     {
@@ -51,6 +63,8 @@ void initGame(int argc, char **argv)
             perror("pipe failed");
             exit(1);
         }
+
+
     }
 
 
@@ -80,6 +94,13 @@ void initGame(int argc, char **argv)
     if (referee_pid == 0)
     {
         referee_process(max_score);
+        exit(0);
+    }
+
+        openGL_pid = fork();
+    if (openGL_pid == 0)
+    {
+        initGraphics(argc, argv); // Initialize and start the OpenGL graphics
         exit(0);
     }
 
