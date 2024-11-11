@@ -238,8 +238,8 @@ void end_game()
     terminate_players(players_id);
     terminate_referee(ref);
     printf("\n____________________________ (( End of game ))_________________________ :\n");
-    printTimeSpentTable(timeSpendeachRound);
-    printf("Score for: TEAM A = %.2f, TEAM B = %.2f, TEAM C = %.2f\n", Score[0], Score[1], Score[2]);
+    // printTimeSpentTable(timeSpendeachRound);
+    // printf("Score for: TEAM A = %.2f, TEAM B = %.2f, TEAM C = %.2f\n", Score[0], Score[1], Score[2]);
     int winning_team_index = findWinningTeam(Score);
     printf("*************** Team [%d] winnnnnn with Score = %.2f ***************\n", winning_team_index, Score[winning_team_index]);
 }
@@ -274,7 +274,7 @@ void writeStopToFile() {
     fclose(file);  // Close the file after writing
 }
 
-void writeToAnimationFileTeam(int team_index , in player_index,float time, int type) {
+void writeToAnimationFileTeam(int team_index , int player_index,float time, int type) {
     FILE *file = fopen("playerAnimationA.txt", "a");  // Open the file in append mode
 
     if (file == NULL) {
@@ -283,7 +283,7 @@ void writeToAnimationFileTeam(int team_index , in player_index,float time, int t
     }
 
     // Write the data to the file
-    fprintf(file, "%d %d %.2f %d\n", team_index, teamIndex, time, type);
+    fprintf(file, "%d %d %.2f %d\n", team_index, player_index, time, type);
 
     fclose(file);  // Close the file after writing
 }
@@ -316,7 +316,7 @@ void writeToAnimationFileTeamB(int team_index , int player_index,float time, int
     }
 
     // Write the data to the file
-    fprintf(file, "%d %d %.2f %d\n", team_index, teamIndex, time, type);
+    fprintf(file, "%d %d %.2f %d\n",  team_index ,  player_index, time, type);
 
     fclose(file);  // Close the file after writing
 }
@@ -329,7 +329,7 @@ void writeToAnimationFileTeamC( int team_index , int player_index,float time, in
     }
 
     // Write the data to the file
-    fprintf(file, "%d %d %.2f %d\n", team_index, teamIndex, time, type);
+    fprintf(file, "%d %d %.2f %d\n",  team_index ,  player_index, time, type);
 
     fclose(file);  // Close the file after writing
 }
