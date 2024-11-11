@@ -274,7 +274,7 @@ void writeStopToFile() {
     fclose(file);  // Close the file after writing
 }
 
-void writeToAnimationFileTeam(int teamIndex, int team_index ,float time, int type) {
+void writeToAnimationFileTeam(int team_index , in player_index,float time, int type) {
     FILE *file = fopen("playerAnimationA.txt", "a");  // Open the file in append mode
 
     if (file == NULL) {
@@ -307,7 +307,7 @@ void writeToScoreFile(int teamIndex, int team_index, float score, float time) {
 
 
 
-void writeToAnimationFileTeamB(int teamIndex, int team_index ,float time, int type) {
+void writeToAnimationFileTeamB(int team_index , int player_index,float time, int type) {
     FILE *file = fopen("playerAnimationB.txt", "a");  // Open the file in append mode
 
     if (file == NULL) {
@@ -320,7 +320,7 @@ void writeToAnimationFileTeamB(int teamIndex, int team_index ,float time, int ty
 
     fclose(file);  // Close the file after writing
 }
-void writeToAnimationFileTeamC(int teamIndex, int team_index ,float time, int type) {
+void writeToAnimationFileTeamC( int team_index , int player_index,float time, int type) {
     FILE *file = fopen("playerAnimationC.txt", "a");  // Open the file in append mode
 
     if (file == NULL) {

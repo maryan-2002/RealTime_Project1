@@ -1,2 +1,2 @@
-gameDuration=44
-gameScore=10
+4
+10

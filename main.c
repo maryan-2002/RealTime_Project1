@@ -34,11 +34,11 @@ pid_t openGL_pid; // Global variable
 pid_t ref[TEAMS_NUMBER];
 
 
-void initGraphics(int argc, char *argv[]); // Add the function prototype
+void initGraphics(int argc, char *argv[]); // Add the function prototype 
 
 void initGame(int argc, char *argv[], GameSettings *settings)
 {
-    // Game setup
+    // // Game setup
     // printf("Enter the maximum score to end the game: ");
     // scanf("%d", &max_score);
     // printf("Enter the maximum game duration in seconds: ");
@@ -97,7 +97,7 @@ void initGame(int argc, char *argv[], GameSettings *settings)
     referee_pid = fork();
     if (referee_pid == 0)
     {
-        referee_process(&settings);
+        referee_process(&settings->max_score);
         exit(0);
     }
 
@@ -117,28 +117,35 @@ void initGame(int argc, char *argv[], GameSettings *settings)
 }
 void hii(){
 
-    printf("hiiiiii");
+    printf("hiiiiii\n");
 }
 
 void loadSettings(const char* filename, GameSettings *settings) {
     FILE *file = fopen(filename, "r");
     if (file == NULL) {
         perror("Error opening file");
+        exit(1);  // Exit if file cannot be opened
+    }
+
+    // Read the first number (game_duration) from the file
+    if (fscanf(file, "%d", &settings->game_duration) != 1) {
+        printf("Error reading game duration\n");
+        fclose(file);
         exit(1);
     }
 
-    char line[256];
-    while (fgets(line, sizeof(line), file)) {
-        // Process each line as needed, e.g., parse key-value pairs
-        char key[50];
-        int value;
-        if (strcmp(key, "gameDuration") == 0) {
-                settings->game_duration = value;
-            } else if (strcmp(key, "gameScore") == 0) {
-                settings->max_score = value;
-            }
+    // Read the second number (max_score) from the file
+    if (fscanf(file, "%d", &settings->max_score) != 1) {
+        printf("Error reading max score\n");
+        fclose(file);
+        exit(2);
     }
+
     fclose(file);
+
+    // // Print the loaded settings to the terminal
+    // printf("duration = %d\n", settings->game_duration);
+    // printf("max_score = %d\n", settings->max_score);
 }
 
 int main(int argc, char *argv[])
@@ -152,7 +159,7 @@ int main(int argc, char *argv[])
     printf("Game Settings:\n");
     printf("Game Duration: %d\n", settings.game_duration);
     printf("Game Score: %d\n", settings.max_score);
-    initGame(argc, argv, &settings); // Initialize and start the game
+    initGame(argc, argv, &settings); // Initialize and start the game 
     return 0;
 }
 
