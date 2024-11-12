@@ -2,17 +2,37 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <unistd.h>
-#include <time.h>  // Add this header to fix implicit declaration of 'time'
+#include <pthread.h>
+
+#include <time.h> // Add this header to fix implicit declaration of 'time'
 #include "referee.h"
 #include "player.h"
 #include "game.h"
 
-
+pid_t durationfork;
 float timeSpendeachRound[NumberOfRound][TEAMS_NUMBER];
 float Score[TEAMS_NUMBER];
 int pipesreftopare[2];
 void referee_process(GameSettings *settings)
 {
+      // Create a thread to run threaded_duration_end
+    pthread_t duration_thread;
+
+    // Allocate memory for the game duration to pass to the thread
+    int *duration = malloc(sizeof(int));
+    if (!duration) {
+        perror("Failed to allocate memory");
+        return;
+    }
+    *duration = settings->game_duration;
+
+    // Start the thread
+    if (pthread_create(&duration_thread, NULL, threaded_duration_end, duration) != 0) {
+        perror("Failed to create thread");
+        free(duration);
+        return;
+    }
+
     printf("Max Score: %d\n", settings->max_score);
     int team_index = 0;
     int player_index = 0;
@@ -54,9 +74,8 @@ void referee_process(GameSettings *settings)
         {
             printf("Received message -point :%f Team Index: %d, Time: %.2f, Round: %d\n", Score[msg_ref.team_index], msg_ref.team_index, msg_ref.time, msg_ref.round);
             writeToFile(Score[msg_ref.team_index], msg_ref.team_index, msg_ref.time, msg_ref.round);
-
         }
-        if (Score[msg_ref.team_index] >=  settings->max_score)
+        if (Score[msg_ref.team_index] >= settings->max_score)
         {
 
             bytesRead = read(pipesreftopare[0], &msg_ref, sizeof(msg_ref));
@@ -93,8 +112,8 @@ void referee_process_judge(int team)
         data = 1;
         ssize_t bytesWritten = write(pipestoref[team][1], &data, sizeof(data));
         ssize_t bytesRead = read(pipes[team][0], &msg, sizeof(msg));
-        
-        writeToAnimationFileTeam(msg.team_index,msg.player_index,msg.time,msg.massageType);
+
+        writeToAnimationFileTeam(msg.team_index, msg.player_index, msg.time, msg.massageType);
         stabilize = msg.time;
         sleep(msg.time);
 
@@ -114,12 +133,11 @@ void referee_process_judge(int team)
         // read the pull time
 
         bytesRead = read(pipes[team][0], &msg, sizeof(msg));
-        writeToAnimationFileTeam(msg.team_index,msg.player_index,msg.time,msg.massageType);
+        writeToAnimationFileTeam(msg.team_index, msg.player_index, msg.time, msg.massageType);
         pull1 = msg.time;
         bytesRead = read(pipes[team][0], &msg, sizeof(msg));
 
-        
-        writeToAnimationFileTeam(msg.team_index,msg.player_index,msg.time,msg.massageType);
+        writeToAnimationFileTeam(msg.team_index, msg.player_index, msg.time, msg.massageType);
 
         pull2 = msg.time;
         finalpull = (pull1 + pull2) / 2;
@@ -162,10 +180,12 @@ void referee_process_judge(int team)
     }
 }
 
-void writeToFile(float score, int teamIndex, float time, int round) {
-    FILE *file = fopen("playerScore.txt", "a");  // Open the file in append mode
+void writeToFile(float score, int teamIndex, float time, int round)
+{
+    FILE *file = fopen("playerScore.txt", "a"); // Open the file in append mode
 
-    if (file == NULL) {
+    if (file == NULL)
+    {
         perror("Error opening file");
         return;
     }
@@ -173,9 +193,8 @@ void writeToFile(float score, int teamIndex, float time, int round) {
     // Write the data to the file
     fprintf(file, " %.2f %d %.2f %d\n", score, teamIndex, time, round);
 
-    fclose(file);  // Close the file after writing
+    fclose(file); // Close the file after writing
 }
-
 
 // Terminate all player processes
 void terminate_players_team(pid_t players_id[3][3], int team)
@@ -205,9 +224,9 @@ void terminate_referee(pid_t ref[3])
         kill(ref[j], SIGTERM);
     }
 }
-void tesstFunction(){
-     printf("Time Spent Each Round (in seconds):\n");
-
+void tesstFunction()
+{
+    printf("Time Spent Each Round (in seconds):\n");
 }
 void printTimeSpentTable(float timeSpendeachRound[NumberOfRound][TEAMS_NUMBER])
 {
@@ -232,15 +251,24 @@ void printTimeSpentTable(float timeSpendeachRound[NumberOfRound][TEAMS_NUMBER])
         printf("\n");
     }
 }
+// Wrapper function for pthread compatibility
+void *threaded_duration_end(void *arg) {
+    int time = *(int *)arg; // Retrieve the time argument
+    //printf("hiiiiiiiiiiiiiiiiiiiiiiiiii iam durationtime %d\n", time);
+    sleep(time);
+   // printf("hiiiiiiiiiiiiiiiiiiiiiiiiii iam durationtime\n");
+    end_game();
+    return NULL;
+}
 
 void end_game()
 {
     terminate_players(players_id);
     terminate_referee(ref);
     printf("\n____________________________ (( End of game ))_________________________ :\n");
-    // printTimeSpentTable(timeSpendeachRound);
-    // printf("Score for: TEAM A = %.2f, TEAM B = %.2f, TEAM C = %.2f\n", Score[0], Score[1], Score[2]);
-    int winning_team_index = findWinningTeam(Score);
+    printTimeSpentTable(timeSpendeachRound);
+    printf("Score for: TEAM A = %.2f, TEAM B = %.2f, TEAM C = %.2f\n", Score[0], Score[1], Score[2]);
+     int winning_team_index = findWinningTeam(Score);
     printf("*************** Team [%d] winnnnnn with Score = %.2f ***************\n", winning_team_index, Score[winning_team_index]);
 }
 
@@ -257,13 +285,13 @@ int findWinningTeam(float Score[TEAMS_NUMBER])
     return max_index;
 }
 
-
-
-void writeStopToFile() {
+void writeStopToFile()
+{
     // Open the file in append mode
     FILE *file = fopen("playerScore.txt", "a");
 
-    if (file == NULL) {
+    if (file == NULL)
+    {
         perror("Error opening file");
         return;
     }
@@ -271,13 +299,15 @@ void writeStopToFile() {
     // Write "stop" to the file
     fprintf(file, "-1\n");
 
-    fclose(file);  // Close the file after writing
+    fclose(file); // Close the file after writing
 }
 
-void writeToAnimationFileTeam(int team_index , int player_index,float time, int type) {
-    FILE *file = fopen("playerAnimationA.txt", "a");  // Open the file in append mode
+void writeToAnimationFileTeam(int team_index, int player_index, float time, int type)
+{
+    FILE *file = fopen("playerAnimationA.txt", "a"); // Open the file in append mode
 
-    if (file == NULL) {
+    if (file == NULL)
+    {
         perror("Error opening file");
         return;
     }
@@ -285,13 +315,15 @@ void writeToAnimationFileTeam(int team_index , int player_index,float time, int 
     // Write the data to the file
     fprintf(file, "%d %d %.2f %d\n", team_index, player_index, time, type);
 
-    fclose(file);  // Close the file after writing
+    fclose(file); // Close the file after writing
 }
-void writeToScoreFile(int teamIndex, int team_index, float score, float time) {
+void writeToScoreFile(int teamIndex, int team_index, float score, float time)
+{
     // Open the file in append mode
     FILE *file = fopen("teamScore.txt", "a");
 
-    if (file == NULL) {
+    if (file == NULL)
+    {
         perror("Error opening file");
         return;
     }
@@ -299,37 +331,36 @@ void writeToScoreFile(int teamIndex, int team_index, float score, float time) {
     // Write the data to the file
     fprintf(file, "TeamIndex: %d, Team: %d, Score: %.2f, Time: %.2f\n", teamIndex, team_index, score, time);
 
-    fclose(file);  // Close the file after writing
+    fclose(file); // Close the file after writing
 }
 
+void writeToAnimationFileTeamB(int team_index, int player_index, float time, int type)
+{
+    FILE *file = fopen("playerAnimationB.txt", "a"); // Open the file in append mode
 
-
-
-
-
-void writeToAnimationFileTeamB(int team_index , int player_index,float time, int type) {
-    FILE *file = fopen("playerAnimationB.txt", "a");  // Open the file in append mode
-
-    if (file == NULL) {
+    if (file == NULL)
+    {
         perror("Error opening file");
         return;
     }
 
     // Write the data to the file
-    fprintf(file, "%d %d %.2f %d\n",  team_index ,  player_index, time, type);
+    fprintf(file, "%d %d %.2f %d\n", team_index, player_index, time, type);
 
-    fclose(file);  // Close the file after writing
+    fclose(file); // Close the file after writing
 }
-void writeToAnimationFileTeamC( int team_index , int player_index,float time, int type) {
-    FILE *file = fopen("playerAnimationC.txt", "a");  // Open the file in append mode
+void writeToAnimationFileTeamC(int team_index, int player_index, float time, int type)
+{
+    FILE *file = fopen("playerAnimationC.txt", "a"); // Open the file in append mode
 
-    if (file == NULL) {
+    if (file == NULL)
+    {
         perror("Error opening file");
         return;
     }
 
     // Write the data to the file
-    fprintf(file, "%d %d %.2f %d\n",  team_index ,  player_index, time, type);
+    fprintf(file, "%d %d %.2f %d\n", team_index, player_index, time, type);
 
-    fclose(file);  // Close the file after writing
+    fclose(file); // Close the file after writing
 }

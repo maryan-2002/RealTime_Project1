@@ -33,7 +33,7 @@ typedef struct {
     int max_score;
     int game_duration;
 }GameSettings;
-// extern max_score, game_duration;
+//extern max_score, game_duration;
 // Shared variables (extern declarations)
 extern pid_t players_id[TEAMS_NUMBER][PLAYERS_FOR_EACH_TEAM];
 extern pid_t ref[TEAMS_NUMBER];

@@ -108,12 +108,7 @@ void initGame(int argc, char *argv[], GameSettings *settings)
         exit(0);
     }
 
-    sleep(&settings->game_duration);
-    printf("Game over! Time's up!\n");
-    hii();
-    end_game();
-
-    sleep(100000000);    
+  pause();
 }
 void hii(){
 
@@ -144,8 +139,26 @@ void loadSettings(const char* filename, GameSettings *settings) {
     fclose(file);
 
     // // Print the loaded settings to the terminal
-    // printf("duration = %d\n", settings->game_duration);
-    // printf("max_score = %d\n", settings->max_score);
+    printf("duration = %d\n", settings->game_duration);
+    printf("max_score = %d\n", settings->max_score);
+
+    FILE *fileA = fopen("playerAnimationA.txt", "w");
+    if (fileA == NULL)
+    {
+        perror("Failed to open playerAnimationA");
+        return;
+    }
+    fclose(fileA);
+
+    // Open playerScore in write mode to empty it
+    FILE *fileB = fopen("playerScore.txt", "w");
+    if (fileB == NULL)
+    {
+        perror("Failed to open playerScore");
+        return;
+    }
+    fclose(fileB);
+
 }
 
 int main(int argc, char *argv[])
@@ -156,9 +169,6 @@ int main(int argc, char *argv[])
     }
     GameSettings settings = {0};
     loadSettings(argv[1], &settings);
-    printf("Game Settings:\n");
-    printf("Game Duration: %d\n", settings.game_duration);
-    printf("Game Score: %d\n", settings.max_score);
     initGame(argc, argv, &settings); // Initialize and start the game 
     return 0;
 }
