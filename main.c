@@ -7,7 +7,7 @@
 #include <signal.h>
 #include <GL/glut.h>
 #include "player.h"
-
+#include "anim.h"
 #include "game.h"
 #include "referee.h"
 #include "animation.h"
@@ -27,14 +27,17 @@ int pipestoref[TEAMS_NUMBER][2];
 int pipes_animation[TEAMS_NUMBER][2];
 int pipes_animationte[2];
 int pipe_myanimation[2];
+
 //int max_score, game_duration;
 
 
 pid_t openGL_pid; // Global variable
+pid_t openGL_pid2;
 pid_t ref[TEAMS_NUMBER];
 
 
 void initGraphics(int argc, char *argv[]); // Add the function prototype 
+void initGraphics2(int argc, char *argv[]);
 
 void initGame(int argc, char *argv[], GameSettings *settings)
 {
@@ -105,6 +108,12 @@ void initGame(int argc, char *argv[], GameSettings *settings)
     if (openGL_pid == 0)
     {
         initGraphics(argc, argv); // Initialize and start the OpenGL graphics
+        exit(0);
+    }
+    openGL_pid2 = fork();
+    if (openGL_pid2 == 0)
+    {
+        initGraphics2(argc, argv); // Initialize and start the OpenGL graphics
         exit(0);
     }
 
